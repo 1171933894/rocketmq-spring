@@ -219,11 +219,17 @@ public class RocketMQUtil {
             if (null == payloadObj) {
                 throw new RuntimeException("the message cannot be empty");
             }
+            // 如果是 String 类型，则直接获得其 byte[] 内容
             if (payloadObj instanceof String) {
                 payloads = ((String) payloadObj).getBytes(Charset.forName(charset));
+            // 如果是 byte[] 类型，则直接使用即可
             } else if (payloadObj instanceof byte[]) {
                 payloads = (byte[]) message.getPayload();
+            // 如果是复杂对象类型，则使用 MessageConverter 进行转换成字符串，然后再获得字符串的 byte[] 内容
             } else {
+                /**
+                 * RocketMQ-Spring 的默认使用 MappingJackson2MessageConverter 或 MappingFastJsonMessageConverter ，即使用 JSON 格式序列化和反序列化 Message 消息内容
+                 */
                 String jsonObj = (String) messageConverter.fromMessage(message, payloadObj.getClass());
                 if (null == jsonObj) {
                     throw new RuntimeException(String.format(
@@ -235,6 +241,7 @@ public class RocketMQUtil {
         } catch (Exception e) {
             throw new RuntimeException("convert to RocketMQ message failed.", e);
         }
+        // 转换成 RocketMQ Message
         return getAndWrapMessage(destination, message.getHeaders(), payloads);
     }
 

@@ -28,6 +28,7 @@ import java.lang.annotation.Target;
 @Documented
 public @interface RocketMQMessageListener {
 
+    // 默认从配置文件读取的占位符
     String NAME_SERVER_PLACEHOLDER = "${rocketmq.name-server:}";
     String ACCESS_KEY_PLACEHOLDER = "${rocketmq.consumer.access-key:}";
     String SECRET_KEY_PLACEHOLDER = "${rocketmq.consumer.secret-key:}";
@@ -35,6 +36,8 @@ public @interface RocketMQMessageListener {
     String ACCESS_CHANNEL_PLACEHOLDER = "${rocketmq.access-channel:}";
 
     /**
+     * Consumer 所属消费者分组
+     *
      * Consumers of the same role is required to have exactly same subscriptions and consumerGroup to correctly achieve
      * load balance. It's required and needs to be globally unique.
      *
@@ -44,11 +47,15 @@ public @interface RocketMQMessageListener {
     String consumerGroup();
 
     /**
+     * 消费的 Topic
+     *
      * Topic name.
      */
     String topic();
 
     /**
+     * 选择器类型。默认基于 Message 的 Tag 选择。
+     *
      * Control how to selector message.
      *
      * @see SelectorType
@@ -56,26 +63,36 @@ public @interface RocketMQMessageListener {
     SelectorType selectorType() default SelectorType.TAG;
 
     /**
+     * 选择器的表达式。设置为 * 时，表示全部。
+     *
      * Control which message can be select. Grammar please see {@link SelectorType#TAG} and {@link SelectorType#SQL92}
      */
     String selectorExpression() default "*";
 
     /**
+     * 消费模式。可选择并发消费，还是顺序消费。
+     *
      * Control consume mode, you can choice receive message concurrently or orderly.
      */
     ConsumeMode consumeMode() default ConsumeMode.CONCURRENTLY;
 
     /**
+     * 消息模型。可选择是集群消费，还是广播消费。
+     *
      * Control message mode, if you want all subscribers receive message all message, broadcasting is a good choice.
      */
     MessageModel messageModel() default MessageModel.CLUSTERING;
 
     /**
+     * 消费的线程池的最大线程数
+     *
      * Max consumer thread number.
      */
     int consumeThreadMax() default 64;
 
     /**
+     * 消费单条消息的超时时间
+     *
      * Maximum amount of time in minutes a message may block the consuming thread.
      */
     long consumeTimeout() default 15L;
@@ -101,11 +118,20 @@ public @interface RocketMQMessageListener {
     String customizedTraceTopic() default TRACE_TOPIC_PLACEHOLDER;
 
     /**
+     * Consumer 连接的 RocketMQ Namesrv 地址。默认情况下，使用 `rocketmq.name-server` 配置项即可。
+     *
+     * 如果一个项目中，Consumer 需要使用不同的 RocketMQ Namesrv ，则需要配置该属性。
+     *
      * The property of "name-server".
      */
     String nameServer() default NAME_SERVER_PLACEHOLDER;
 
     /**
+     * 访问通道。目前有 LOCAL 和 CLOUD 两种通道。
+     *
+     * LOCAL ，指的是本地部署的 RocketMQ 开源项目。
+     * CLOUD ，指的是阿里云的 ONS 服务。具体可见 https://help.aliyun.com/document_detail/128585.html 文档。
+     *
      * The property of "access-channel".
      */
     String accessChannel() default ACCESS_CHANNEL_PLACEHOLDER;
