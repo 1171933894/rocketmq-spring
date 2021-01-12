@@ -24,11 +24,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 @SuppressWarnings("WeakerAccess")
-@ConfigurationProperties(prefix = "rocketmq")
+@ConfigurationProperties(prefix = "rocketmq")// 配置文件中 rocketmq 前缀
 public class RocketMQProperties {
 
     /**
      * The name server for rocketMQ, formats: `host:port;host:port`.
+     *
+     * Namesrv 地址
      */
     private String nameServer;
 
@@ -37,6 +39,9 @@ public class RocketMQProperties {
      */
     private String accessChannel;
 
+    /**
+     * Producer 配置
+     */
     private Producer producer;
 
     /**

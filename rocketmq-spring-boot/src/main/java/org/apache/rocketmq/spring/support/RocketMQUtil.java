@@ -213,6 +213,7 @@ public class RocketMQUtil {
     public static org.apache.rocketmq.common.message.Message convertToRocketMessage(
         MessageConverter messageConverter, String charset,
         String destination, org.springframework.messaging.Message<?> message) {
+        // 生成消息的 bytes 数组
         Object payloadObj = message.getPayload();
         byte[] payloads;
         try {

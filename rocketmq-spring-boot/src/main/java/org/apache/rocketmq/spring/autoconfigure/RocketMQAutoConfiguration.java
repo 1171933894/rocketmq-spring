@@ -51,10 +51,11 @@ import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
 
-@Configuration
-@EnableConfigurationProperties(RocketMQProperties.class)
-@ConditionalOnClass({MQAdmin.class})
-@ConditionalOnProperty(prefix = "rocketmq", value = "name-server", matchIfMissing = true)
+@Configuration// 标识是配置类
+@EnableConfigurationProperties(RocketMQProperties.class)// 指定 RocketMQProperties 自动配置
+@ConditionalOnClass({MQAdmin.class})// 要求有 MQAdmin、ObjectMapper 类
+@ConditionalOnProperty(prefix = "rocketmq", value = "name-server", matchIfMissing = true)// 要求有 rocketmq 开头，且 name-server 的配置
+// 引入 JacksonFallbackConfiguration 和 ListenerContainerConfiguration 配置类
 @Import({MessageConverterConfiguration.class, ListenerContainerConfiguration.class, ExtProducerResetConfiguration.class, ExtConsumerResetConfiguration.class, RocketMQTransactionConfiguration.class})
 @AutoConfigureAfter({MessageConverterConfiguration.class})
 @AutoConfigureBefore({RocketMQTransactionConfiguration.class})
@@ -87,9 +88,10 @@ public class RocketMQAutoConfiguration implements ApplicationContextAware {
     }
 
     @Bean(PRODUCER_BEAN_NAME)
-    @ConditionalOnMissingBean(DefaultMQProducer.class)
-    @ConditionalOnProperty(prefix = "rocketmq", value = {"name-server", "producer.group"})
+    @ConditionalOnMissingBean(DefaultMQProducer.class)// 不存在 DefaultMQProducer Bean 对象
+    @ConditionalOnProperty(prefix = "rocketmq", value = {"name-server", "producer.group"})// 要求有 rocketmq 开头，且 name-server、producer.group 的配置
     public DefaultMQProducer defaultMQProducer(RocketMQProperties rocketMQProperties) {
+        // 校验配置
         RocketMQProperties.Producer producerConfig = rocketMQProperties.getProducer();
         String nameServer = rocketMQProperties.getNameServer();
         String groupName = producerConfig.getGroup();
@@ -103,8 +105,9 @@ public class RocketMQAutoConfiguration implements ApplicationContextAware {
         boolean isEnableMsgTrace = rocketMQProperties.getProducer().isEnableMsgTrace();
         String customizedTraceTopic = rocketMQProperties.getProducer().getCustomizedTraceTopic();
 
+        // 创建 DefaultMQProducer 对象
         DefaultMQProducer producer = RocketMQUtil.createDefaultMQProducer(groupName, ak, sk, isEnableMsgTrace, customizedTraceTopic);
-
+        // 将 RocketMQProperties.Producer 配置，设置到 producer 中
         producer.setNamesrvAddr(nameServer);
         if (!StringUtils.isEmpty(accessChannel)) {
             producer.setAccessChannel(AccessChannel.valueOf(accessChannel));
@@ -145,11 +148,13 @@ public class RocketMQAutoConfiguration implements ApplicationContextAware {
         return litePullConsumer;
     }
 
-    @Bean(destroyMethod = "destroy")
-    @Conditional(ProducerOrConsumerPropertyCondition.class)
-    @ConditionalOnMissingBean(name = ROCKETMQ_TEMPLATE_DEFAULT_GLOBAL_NAME)
+    @Bean(destroyMethod = "destroy")// 声明了销毁时，调用 destroy 方法
+    @Conditional(ProducerOrConsumerPropertyCondition.class)// 有 DefaultMQProducer Bean 的情况下
+    @ConditionalOnMissingBean(name = ROCKETMQ_TEMPLATE_DEFAULT_GLOBAL_NAME)// 不存在 RocketMQTemplate Bean 对象
     public RocketMQTemplate rocketMQTemplate(RocketMQMessageConverter rocketMQMessageConverter) {
+        // 创建 RocketMQTemplate 对象
         RocketMQTemplate rocketMQTemplate = new RocketMQTemplate();
+        // 设置其属性
         if (applicationContext.containsBean(PRODUCER_BEAN_NAME)) {
             rocketMQTemplate.setProducer((DefaultMQProducer) applicationContext.getBean(PRODUCER_BEAN_NAME));
         }

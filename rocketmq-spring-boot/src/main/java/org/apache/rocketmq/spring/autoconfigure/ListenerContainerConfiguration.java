@@ -50,6 +50,9 @@ public class ListenerContainerConfiguration implements ApplicationContextAware, 
 
     private ConfigurableApplicationContext applicationContext;
 
+    /**
+     * 计数器，用于在 {@link #registerContainer(String, Object)} 方法中，创建 DefaultRocketMQListenerContainer Bean 时，生成 Bean 的名字。
+     */
     private AtomicLong counter = new AtomicLong(0);
 
     private StandardEnvironment environment;
@@ -65,23 +68,31 @@ public class ListenerContainerConfiguration implements ApplicationContextAware, 
         this.rocketMQProperties = rocketMQProperties;
     }
 
+    /**
+     * 实现自 ApplicationContextAware 接口
+     */
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         this.applicationContext = (ConfigurableApplicationContext) applicationContext;
     }
 
-    @Override
+    /**
+     * #afterSingletonsInstantiated() 方法，给每个带有注解的 @RocketMQMessageListener Bean 对象，生成对应的 DefaultRocketMQListenerContainer Bean 对象。
+     */
+    @Override// 实现自 SmartInitializingSingleton 接口
     public void afterSingletonsInstantiated() {
+        // <1> 获得所有 @RocketMQMessageListener 注解的 Bean 们
         Map<String, Object> beans = this.applicationContext.getBeansWithAnnotation(RocketMQMessageListener.class)
             .entrySet().stream().filter(entry -> !ScopedProxyUtils.isScopedTarget(entry.getKey()))
             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
+        // <2> 遍历 beans 数组，生成（注册）对应的 DefaultRocketMQListenerContainer Bean 对象。
         beans.forEach(this::registerContainer);
     }
 
     private void registerContainer(String beanName, Object bean) {
+        // <1.1> 获得 Bean 对应的 Class 类名。因为有可能被 AOP 代理过。
         Class<?> clazz = AopProxyUtils.ultimateTargetClass(bean);
-
+        // <1.2> 如果未实现 RocketMQListener 接口，直接抛出 IllegalStateException 异常。
         if (RocketMQListener.class.isAssignableFrom(bean.getClass()) && RocketMQReplyListener.class.isAssignableFrom(bean.getClass())) {
             throw new IllegalStateException(clazz + " cannot be both instance of " + RocketMQListener.class.getName() + " and " + RocketMQReplyListener.class.getName());
         }
@@ -89,7 +100,7 @@ public class ListenerContainerConfiguration implements ApplicationContextAware, 
         if (!RocketMQListener.class.isAssignableFrom(bean.getClass()) && !RocketMQReplyListener.class.isAssignableFrom(bean.getClass())) {
             throw new IllegalStateException(clazz + " is not instance of " + RocketMQListener.class.getName() + " or " + RocketMQReplyListener.class.getName());
         }
-
+        // <1.3> 获得 @RocketMQMessageListener 注解
         RocketMQMessageListener annotation = clazz.getAnnotation(RocketMQMessageListener.class);
 
         String consumerGroup = this.environment.resolvePlaceholders(annotation.consumerGroup());
@@ -105,16 +116,19 @@ public class ListenerContainerConfiguration implements ApplicationContextAware, 
                 consumerGroup, topic);
             return;
         }
+        // <1.4> 校验注解配置
         validate(annotation);
-
+        // <2.1> 生成 DefaultRocketMQListenerContainer Bean 的名字
         String containerBeanName = String.format("%s_%s", DefaultRocketMQListenerContainer.class.getName(),
             counter.incrementAndGet());
         GenericApplicationContext genericApplicationContext = (GenericApplicationContext) applicationContext;
-
+        // <2.2> 创建 DefaultRocketMQListenerContainer Bean 对象，并注册到 Spring 容器中
         genericApplicationContext.registerBean(containerBeanName, DefaultRocketMQListenerContainer.class,
             () -> createRocketMQListenerContainer(containerBeanName, bean, annotation));
+        // <3.1> 从 Spring 容器中，获得刚注册的 DefaultRocketMQListenerContainer Bean 对象
         DefaultRocketMQListenerContainer container = genericApplicationContext.getBean(containerBeanName,
             DefaultRocketMQListenerContainer.class);
+        // <3.2> 如果未启动，则进行启动
         if (!container.isRunning()) {
             try {
                 container.start();
@@ -123,16 +137,17 @@ public class ListenerContainerConfiguration implements ApplicationContextAware, 
                 throw new RuntimeException(e);
             }
         }
-
+        // 打印日志
         log.info("Register the listener to container, listenerBeanName:{}, containerBeanName:{}", beanName, containerBeanName);
     }
 
     private DefaultRocketMQListenerContainer createRocketMQListenerContainer(String name, Object bean,
         RocketMQMessageListener annotation) {
+        // 创建 DefaultRocketMQListenerContainer 对象
         DefaultRocketMQListenerContainer container = new DefaultRocketMQListenerContainer();
 
         container.setRocketMQMessageListener(annotation);
-
+        // 设置其属性
         String nameServer = environment.resolvePlaceholders(annotation.nameServer());
         nameServer = StringUtils.isEmpty(nameServer) ? rocketMQProperties.getNameServer() : nameServer;
         String accessChannel = environment.resolvePlaceholders(annotation.accessChannel());
@@ -158,6 +173,7 @@ public class ListenerContainerConfiguration implements ApplicationContextAware, 
     }
 
     private void validate(RocketMQMessageListener annotation) {
+        // 禁止顺序消费 + 广播消费
         if (annotation.consumeMode() == ConsumeMode.ORDERLY &&
             annotation.messageModel() == MessageModel.BROADCASTING) {
             throw new BeanDefinitionValidationException(

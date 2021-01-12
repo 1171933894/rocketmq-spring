@@ -24,10 +24,10 @@ public enum SelectorType {
     /**
      * @see ExpressionType#TAG
      */
-    TAG,
+    TAG,// 标签
 
     /**
      * @see ExpressionType#SQL92
      */
-    SQL92
+    SQL92// SQL
 }

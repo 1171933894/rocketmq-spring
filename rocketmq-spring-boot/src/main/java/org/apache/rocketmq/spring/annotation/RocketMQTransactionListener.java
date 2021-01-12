@@ -35,7 +35,7 @@ import org.springframework.stereotype.Component;
 @Target({ElementType.TYPE, ElementType.ANNOTATION_TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-@Component
+@Component// 默认带了 @Component 注解，所以只要添加到了类上，就会注册成 Spring Bean 对象
 public @interface RocketMQTransactionListener {
 
     /**

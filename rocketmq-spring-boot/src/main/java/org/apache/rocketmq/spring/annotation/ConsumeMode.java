@@ -21,10 +21,10 @@ public enum ConsumeMode {
     /**
      * Receive asynchronously delivered messages concurrently
      */
-    CONCURRENTLY,
+    CONCURRENTLY,// 并发消费
 
     /**
      * Receive asynchronously delivered messages orderly. one queue, one thread
      */
-    ORDERLY
+    ORDERLY// 顺序消费
 }

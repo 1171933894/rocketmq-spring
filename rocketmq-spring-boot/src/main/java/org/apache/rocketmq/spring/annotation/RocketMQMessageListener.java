@@ -23,7 +23,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Target(ElementType.TYPE)
+@Target(ElementType.TYPE)// 表名，注解在类上
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface RocketMQMessageListener {
